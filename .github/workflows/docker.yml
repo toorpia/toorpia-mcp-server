@@ -2,11 +2,11 @@ name: Build and Publish Docker Image
 
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    branches: [main]        # 本番リリース時のみフルCI/CD
+    tags: ["v*"]           # バージョンタグ時
   pull_request:
-    branches: [main]
-  workflow_dispatch:
+    branches: [main, dev]   # PR時のテスト実行
+  workflow_dispatch:       # 手動実行
 
 env:
   REGISTRY: ghcr.io
