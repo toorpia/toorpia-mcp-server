@@ -11,8 +11,16 @@ const logLevels = {
   debug: 3,
 };
 
+interface LoggerConfig {
+  level: string;
+  levels: typeof logLevels;
+  format: winston.Logform.Format;
+  transports: winston.transport[];
+  exitOnError: boolean;
+}
+
 // Create winston logger configuration
-const createLoggerConfig = (label) => {
+const createLoggerConfig = (label: string): LoggerConfig => {
   const logLevel = process.env.LOG_LEVEL || 'info';
   const verboseLogging = process.env.VERBOSE_LOGGING === 'true';
 
@@ -34,7 +42,7 @@ const createLoggerConfig = (label) => {
     formats.unshift(winston.format.colorize());
   }
 
-  const transports = [
+  const transports: winston.transport[] = [
     new winston.transports.Console({
       level: logLevel,
       format: winston.format.combine(...formats),
@@ -45,7 +53,7 @@ const createLoggerConfig = (label) => {
   if (process.env.NODE_ENV === 'production' || process.env.ENABLE_FILE_LOGGING === 'true') {
     transports.push(
       new winston.transports.File({
-        filename: 'logs/error.log',
+        filename: 'var/logs/error.log',
         level: 'error',
         format: winston.format.combine(
           winston.format.timestamp(),
@@ -54,7 +62,7 @@ const createLoggerConfig = (label) => {
         ),
       }),
       new winston.transports.File({
-        filename: 'logs/combined.log',
+        filename: 'var/logs/combined.log',
         level: logLevel,
         format: winston.format.combine(
           winston.format.timestamp(),
@@ -75,16 +83,16 @@ const createLoggerConfig = (label) => {
 };
 
 // Logger cache to reuse loggers with the same label
-const loggerCache = new Map();
+const loggerCache = new Map<string, winston.Logger>();
 
 /**
  * Create or retrieve a cached logger instance
- * @param {string} label - Logger label (usually module name)
- * @returns {winston.Logger} Winston logger instance
+ * @param label - Logger label (usually module name)
+ * @returns Winston logger instance
  */
-export const createLogger = (label) => {
+export const createLogger = (label: string): winston.Logger => {
   if (loggerCache.has(label)) {
-    return loggerCache.get(label);
+    return loggerCache.get(label)!;
   }
 
   const logger = winston.createLogger(createLoggerConfig(label));
@@ -95,27 +103,27 @@ export const createLogger = (label) => {
 
 /**
  * Get the default logger
- * @returns {winston.Logger} Default logger instance
+ * @returns Default logger instance
  */
-export const getDefaultLogger = () => {
+export const getDefaultLogger = (): winston.Logger => {
   return createLogger('Default');
 };
 
 /**
  * Create a child logger with additional context
- * @param {winston.Logger} parentLogger - Parent logger
- * @param {object} context - Additional context to include in logs
- * @returns {winston.Logger} Child logger with context
+ * @param parentLogger - Parent logger
+ * @param context - Additional context to include in logs
+ * @returns Child logger with context
  */
-export const createChildLogger = (parentLogger, context) => {
+export const createChildLogger = (parentLogger: winston.Logger, context: Record<string, any>): winston.Logger => {
   return parentLogger.child(context);
 };
 
 /**
  * Configure logger for specific environments
- * @param {string} environment - Environment (development, production, test)
+ * @param environment - Environment (development, production, test)
  */
-export const configureForEnvironment = (environment) => {
+export const configureForEnvironment = (environment: string): void => {
   switch (environment) {
     case 'test':
       // Minimize logging during tests

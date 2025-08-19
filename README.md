@@ -1,24 +1,30 @@
-# Toorpia MCP Server
+# Toorpia MCP Server v2.0
 
-A minimal Model Context Protocol (MCP) server providing access to the toorpia backend API.
+TypeScript MCP Server for toorpia - Provides secure access to geospatial analysis with preprocessing workflow and JWT authentication.
 
 ## Overview
 
-This MCP server is designed to allow AI assistants to naturally use toorpia's analysis capabilities. It provides 4 essential tools and 2 resources, supporting the basic workflow from data upload to analysis execution, result retrieval, and feedback collection.
+This MCP server provides AI assistants with secure, workflow-driven access to toorpia's geospatial analysis capabilities. Version 2.0 introduces a mandatory preprocessing workflow, JWT authentication, and comprehensive audit logging.
 
-## Features
+## Key Features
 
-### Available Tools
+### 🔄 Preprocessing Workflow
+- **Mandatory preprocessing**: All analyses require preprocessing workflow completion
+- **Smart suggestions**: AI-powered preprocessing recommendations based on data profiling
+- **Session management**: Stateful sessions track preprocessing progress
+- **READY gate**: Analysis execution only permitted after preprocessing confirmation
 
-1. **`toorpia_upload_data`** - Upload CSV data to toorpia backend for analysis
-2. **`toorpia_run_analysis`** - Execute analysis on uploaded data
-3. **`toorpia_get_status`** - Check analysis progress and retrieve results
-4. **`toorpia_collect_feedback`** - Collect user feedback about toorpia experience
+### 🔐 Security & Authentication
+- **JWT Authentication**: Bearer token authentication with scope-based access control
+- **Audit logging**: Comprehensive structured logging of all operations
+- **Tenant isolation**: Multi-tenant support with data segregation
+- **Development mode**: Optional authentication bypass for development
 
-### Available Resources
-
-1. **`toorpia://status`** - System status and backend connectivity
-2. **`toorpia://help`** - Basic usage guide
+### 📊 Analysis Tools
+- **Data upload**: CSV data ingestion with validation
+- **Status monitoring**: Real-time analysis progress tracking
+- **Result retrieval**: Structured analysis result access
+- **Feedback collection**: User experience feedback system
 
 ## Installation and Setup
 
@@ -26,7 +32,7 @@ This MCP server is designed to allow AI assistants to naturally use toorpia's an
 
 - Node.js 18.0.0 or higher
 - npm
-- toorpia backend (optional)
+- toorpia backend (optional for development)
 
 ### Installation
 
@@ -36,186 +42,363 @@ npm install
 
 # Set up environment variables
 cp .env.example .env
-# Edit .env file to configure toorpia backend URL and other settings
+# Edit .env file to configure settings
 ```
 
 ### Environment Variables
 
 ```env
-# Toorpia Backend API URL
+# Backend API
 TOORPIA_API_URL=http://localhost:3000
-
-# Optional API key for authentication
 TOORPIA_API_KEY=your_api_key_here
 
-# Logging level (error, warn, info, debug)
+# JWT Authentication (choose one)
+AUTH_JWKS_URL=https://your-auth-provider.com/.well-known/jwks.json
+# OR
+AUTH_PUBLIC_KEY="-----BEGIN CERTIFICATE-----..."
+
+# Development settings
+NODE_ENV=development
+SKIP_AUTH=true
+
+# Logging
 LOG_LEVEL=info
+VERBOSE_LOGGING=false
+ENABLE_FILE_LOGGING=false
 ```
 
 ## Usage
 
-### Basic Startup
+### Development Mode
 
 ```bash
-# Start server
+# Start server in development mode
+npm run dev
+
+# Build TypeScript
+npm run build
+
+# Start production server
 npm start
 
-# Development mode (using nodemon)
-npm run dev
+# Type check without compilation
+npm run check
 ```
 
-### Usage with MCP Clients
+### MCP Client Configuration
 
-Add the following to your MCP client (Claude Desktop, etc.) configuration file:
+Add to your MCP client configuration:
 
 ```json
 {
   "mcpServers": {
     "toorpia": {
       "command": "node",
-      "args": ["path/to/toorpia-mcp-server/server.js"],
+      "args": ["path/to/toorpia-mcp-server/dist/server.js"],
       "env": {
-        "TOORPIA_API_URL": "http://localhost:3000"
+        "TOORPIA_API_URL": "http://localhost:3000",
+        "NODE_ENV": "production"
       }
     }
   }
 }
 ```
 
-### Basic Workflow
+## Preprocessing Workflow
 
-1. **Data Upload**
-   ```
-   Use toorpia_upload_data to upload CSV data
-   → Get data_id
-   ```
+### Required Flow: suggest → confirm → analyze
 
-2. **Run Analysis**
-   ```
-   Use toorpia_run_analysis to start analysis
-   → Get analysis_id
-   ```
+The new preprocessing workflow ensures data quality and analysis reliability:
 
-3. **Check Results**
-   ```
-   Use toorpia_get_status to check progress and results
-   ```
+1. **Upload Data**: `toorpia_upload_data` → get `dataset_id`
+2. **Get Suggestions**: `toorpia_suggest_preprocess` → receive preprocessing candidates
+3. **Process Data**: Apply suggested preprocessing (external to this system)
+4. **Confirm Processing**: `toorpia_confirm_preprocessed` → create analysis session (READY state)
+5. **Run Analysis**: `toorpia_run_analysis` → execute analysis with preprocessed data
+6. **Check Results**: `toorpia_get_status` → monitor progress and retrieve results
 
-4. **Provide Feedback**
-   ```
-   Use toorpia_collect_feedback to share your experience
-   ```
+### Error Handling
 
-## Design Philosophy
+If you attempt analysis without completing preprocessing, you'll receive:
 
-### Minimal MVP (Minimum Viable Product)
-
-- **Simple Structure**: Eliminates complex module systems
-- **Practical Focus**: Minimal feature set that actually works
-- **Gradual Growth**: Expansion based on actual usage patterns
-
-### Feedback-Driven Development
-
-- Local filesystem feedback collection
-- Improvements based on real usage data
-- User-centered feature expansion
-
-## File Structure
-
-```
-toorpia-mcp-server/
-├── server.js              # Main MCP server
-├── package.json
-├── .env.example           # Environment variable template
-├── README.md
-├── utils/
-│   ├── backendClient.js   # Toorpia Backend API client
-│   ├── logger.js          # Logging system
-│   └── validator.js       # Validation utilities
-└── feedback/              # Collected feedback (auto-generated)
+```json
+{
+  "error": "PREPROCESS_REQUIRED",
+  "message": "前処理の提案と処理済み確認を完了してください。",
+  "next": [
+    { "tool": "toorpia_suggest_preprocess", "args": { "dataset_id": "..." } },
+    { "tool": "toorpia_confirm_preprocessed", "args": { "dataset_id": "...", "processed_uri": "..." } }
+  ]
+}
 ```
 
-## Technical Specifications
+## Available Tools
 
-- **MCP SDK**: @modelcontextprotocol/sdk ^0.5.0
-- **HTTP Client**: axios
-- **Logging**: winston
-- **Environment Variables**: dotenv
+### 1. toorpia_upload_data
+Upload CSV data to toorpia backend for analysis.
 
-## Troubleshooting
+**Parameters:**
+- `csv_data` (string): CSV data content
+- `filename` (string, optional): Filename (default: "data.csv")
 
-### Common Issues
+### 2. toorpia_suggest_preprocess ⭐ NEW
+Get preprocessing suggestions for uploaded data.
 
-1. **Backend Connection Error**
-   - Verify `TOORPIA_API_URL` is correctly set
-   - Ensure toorpia backend is running
+**Parameters:**
+- `dataset_id` (string): ID from upload response
+- `topk` (number, optional): Number of suggestions (default: 5)
 
-2. **Dependency Error**
-   ```bash
-   npm install
-   ```
+**Requires scope:** `mcp:profile`
 
-3. **Permission Error**
-   - Check write permissions for feedback directory
+### 3. toorpia_confirm_preprocessed ⭐ NEW
+Confirm preprocessed data and create analysis session.
 
-### Log Checking
+**Parameters:**
+- `dataset_id` (string): ID from upload response
+- `processed_uri` (string): URI to processed data file
+- `manifest` (object): Preprocessing manifest with metadata
+  - `preset_id` (string): Selected preprocessing preset
+  - `profile_id` (string): Data profile identifier
+  - `recipe_version` (string): Recipe version used
+  - `checksum` (string): Data integrity checksum
+  - `row_count` (number): Number of data rows
+  - `schema` (object): Data schema information
 
-Adjust log level to get debug information:
+**Requires scope:** `mcp:profile`
 
-```env
-LOG_LEVEL=debug
+### 4. toorpia_run_analysis (Updated)
+Run analysis on preprocessed data (requires READY session).
+
+**Parameters:**
+- `session_id` (string): Session ID from confirm_preprocessed (**REQUIRED**)
+- `analysis_type` (string, optional): "clustering" or "anomaly_detection"
+- `parameters` (object, optional): Analysis parameters
+
+**Requires scope:** `mcp:analyze`
+
+### 5. toorpia_get_status
+Check analysis progress and get results.
+
+**Parameters:**
+- `analysis_id` (string): ID from run_analysis response
+
+### 6. toorpia_collect_feedback
+Submit feedback about your toorpia experience.
+
+**Parameters:**
+- `feedback_type` (string): "bug_report", "feature_request", "usage_experience", or "performance_issue"
+- `title` (string): Brief feedback title
+- `description` (string): Detailed description
+- `context` (object, optional): Additional context
+- `rating` (number, optional): Rating 1-5
+
+## Available Resources
+
+### toorpia://status
+Current system status and backend connectivity information.
+
+### toorpia://help
+Complete usage guide for the preprocessing workflow.
+
+## Authentication & Authorization
+
+### JWT Token Authentication
+
+In production, include JWT token in requests:
+
+```
+Authorization: Bearer <jwt-token>
 ```
 
-## Development and Testing
+**Required Scopes:**
+- `mcp:profile`: Preprocessing tools (suggest/confirm)
+- `mcp:analyze`: Analysis execution
+- `*`: All permissions
 
 ### Development Mode
 
+Skip authentication for development:
+
+```env
+NODE_ENV=development
+SKIP_AUTH=true
+```
+
+## Architecture
+
+### File Structure
+
+```
+toorpia-mcp-server/
+├── src/
+│   ├── server.ts              # Main MCP server
+│   ├── types.ts               # Common TypeScript types
+│   ├── middleware/
+│   │   ├── auth.ts            # JWT authentication
+│   │   └── guard.ts           # READY gate & session management
+│   ├── utils/
+│   │   ├── backendClient.ts   # Toorpia API client
+│   │   ├── logger.ts          # Winston logging
+│   │   └── audit.ts           # Audit logging
+│   └── schemas/               # Zod validation schemas
+├── dist/                      # Compiled TypeScript
+├── var/logs/                  # Audit logs
+├── feedback/                  # User feedback
+├── tsconfig.json
+├── package.json
+└── README.md
+```
+
+### Technology Stack
+
+- **TypeScript**: Type-safe server implementation
+- **Zod**: Runtime schema validation and type inference
+- **JWT**: JSON Web Token authentication
+- **Winston**: Structured logging
+- **Axios**: HTTP client for backend communication
+- **MCP SDK**: Model Context Protocol implementation
+
+## Monitoring & Logging
+
+### Audit Logging
+
+Structured audit logs in JSON Lines format:
+
+```
+./var/logs/tool_calls.jsonl
+```
+
+Each log entry includes:
+- User and tenant identification
+- Tool execution details
+- Input parameter hashes (privacy-preserving)
+- Success/failure status
+- Session and preset information
+
+### Feedback Collection
+
+User feedback stored in:
+
+```
+./feedback/
+```
+
+Each feedback file contains user experience data for system improvement.
+
+## Error Codes
+
+| Code | Description | Action Required |
+|------|-------------|-----------------|
+| `PREPROCESS_REQUIRED` | Preprocessing workflow not completed | Complete suggest → confirm flow |
+| `SESSION_NOT_FOUND` | Session expired or invalid | Start new preprocessing workflow |
+| `ACCESS_DENIED` | Insufficient permissions | Check JWT token scopes |
+| `INVALID_MANIFEST` | Preprocessing manifest validation failed | Verify manifest format |
+| `BACKEND_UNREACHABLE` | toorpia backend connection failed | Check backend status |
+
+## Development
+
+### TypeScript Development
+
 ```bash
+# Watch mode with auto-reload
+npm run dev
+
+# Type checking
+npm run check
+
+# Build for production
+npm run build
+```
+
+### Adding New Tools
+
+1. Define Zod schema in `src/schemas/`
+2. Add tool handler in `src/server.ts`
+3. Implement validation and business logic
+4. Add authentication and audit logging
+5. Update documentation
+
+### Session Management
+
+Sessions are stored in-memory with automatic cleanup:
+- **Creation**: During `suggest_preprocess`
+- **Updates**: During `confirm_preprocessed` and `run_analysis`
+- **Cleanup**: Automatic expiry after 24 hours
+
+## Deployment
+
+### Production Deployment
+
+1. **Build the application:**
+   ```bash
+   npm run build
+   ```
+
+2. **Set production environment variables:**
+   ```env
+   NODE_ENV=production
+   SKIP_AUTH=false
+   AUTH_JWKS_URL=https://your-auth-provider.com/.well-known/jwks.json
+   TOORPIA_API_URL=https://api.toorpia.com
+   LOG_LEVEL=info
+   ENABLE_FILE_LOGGING=true
+   ```
+
+3. **Start the server:**
+   ```bash
+   npm start
+   ```
+
+### Docker Deployment
+
+```dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY dist/ ./dist/
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+## Contributing
+
+### Development Setup
+
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Set up environment: `cp .env.example .env`
+4. Start development server: `npm run dev`
+
+### Code Quality
+
+- TypeScript strict mode enabled
+- Zod for runtime validation
+- Winston for structured logging
+- Comprehensive error handling
+
+### Testing
+
+```bash
+# Run type checks
+npm run check
+
+# Test server startup
 npm run dev
 ```
-
-### Basic Testing
-
-```bash
-# Server startup test
-npm start
-
-# Manual tool testing (via MCP client)
-```
-
-## Feedback and Improvement
-
-This MCP server is continuously improved:
-
-- Feedback is automatically saved in `./feedback/` directory
-- Feature expansion based on actual usage patterns
-- Optimization according to user needs
-
-## Future Plans
-
-### Phase 1: Basic Features (Completed)
-- [x] Minimal tool set
-- [x] Basic toorpia backend connection
-- [x] Feedback collection system
-
-### Phase 2: Usability Improvements (Planned)
-- [ ] Real usage pattern analysis
-- [ ] Enhanced error handling
-- [ ] Performance optimization
-
-### Phase 3: Advanced Features (Future)
-- [ ] Knowledge base expansion
-- [ ] Parameter optimization support
-- [ ] Advanced guidance features
 
 ## License
 
 MIT License
 
-## Contributing
+## Support
 
-For feedback and improvement suggestions, please use the `toorpia_collect_feedback` tool or GitHub Issues.
+For feedback and support:
+
+1. Use the `toorpia_collect_feedback` tool within the MCP server
+2. Create GitHub issues for bugs and feature requests
+3. Check `toorpia://help` resource for usage guidance
 
 ---
 
-**Note**: This server is designed as a minimal MVP and requires connection to an actual toorpia backend. Even if the backend is unavailable, the MCP server itself will start and basic functionality testing is possible.
+**Version 2.0 introduces breaking changes.** The preprocessing workflow is now mandatory for all analysis operations. Update your integrations accordingly.
