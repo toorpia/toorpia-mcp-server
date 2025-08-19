@@ -1,10 +1,11 @@
-# Toorpia MCP Server
+# toorPIA MCP Server
 
-TypeScript MCP Server for toorpia - Provides secure access to high-dimensional manufacturing/process analysis with preprocessing workflow and JWT authentication.
+TypeScript MCP Server for toorPIA - Provides secure access to high-dimensional manufacturing/process analysis with preprocessing workflow and JWT authentication.
 
 ## Overview
 
-This MCP server provides AI assistants with secure, workflow-driven access to toorpia's high-dimensional process analysis capabilities. Version 2.0 introduces a mandatory preprocessing workflow, JWT authentication, and comprehensive audit logging.
+This MCP server provides AI assistants with secure, workflow-oriented access to toorPIA's high-dimensional process analysis capabilities.  
+It enforces a mandatory preprocessing workflow, supports JWT-based authentication, and maintains comprehensive audit logging.
 
 ## Key Features
 
@@ -32,7 +33,7 @@ This MCP server provides AI assistants with secure, workflow-driven access to to
 
 - Node.js 18.0.0 or higher
 - npm
-- toorpia backend (optional for development)
+- toorPIA backend (optional for development)
 
 ### Installation
 
@@ -159,7 +160,7 @@ If you attempt analysis without completing preprocessing, you'll receive:
 ## Available Tools
 
 ### 1. toorpia_upload_data
-Upload CSV data to toorpia backend for analysis.
+Upload CSV data to toorPIA backend for analysis.
 
 **Parameters:**
 - `csv_data` (string): CSV data content
@@ -235,7 +236,7 @@ Check analysis progress and get results.
 ```
 
 ### 6. toorpia_collect_feedback
-Submit feedback about your toorpia experience.
+Submit feedback about your toorPIA experience.
 
 **Parameters:**
 - `feedback_type` (string): "bug_report", "feature_request", "usage_experience", or "performance_issue"
@@ -315,7 +316,7 @@ toorpia-mcp-server/
 │   │   ├── auth.ts            # JWT authentication
 │   │   └── guard.ts           # READY gate & session management
 │   ├── utils/
-│   │   ├── backendClient.ts   # Toorpia API client
+│   │   ├── backendClient.ts   # toorPIA API client
 │   │   ├── logger.ts          # Winston logging
 │   │   └── audit.ts           # Audit logging
 │   └── schemas/               # Zod validation schemas
@@ -386,7 +387,7 @@ This ensures feedback data persists across application updates and container res
 | `SESSION_NOT_FOUND` | Session expired or invalid | Start new preprocessing workflow |
 | `ACCESS_DENIED` | Insufficient permissions | Check JWT token scopes |
 | `INVALID_MANIFEST` | Preprocessing manifest validation failed | Verify manifest format |
-| `BACKEND_UNREACHABLE` | toorpia backend connection failed | Check backend status |
+| `BACKEND_UNREACHABLE` | toorPIA backend connection failed | Check backend status |
 
 ## Development
 
@@ -493,7 +494,3 @@ For feedback and support:
 1. Use the `toorpia_collect_feedback` tool within the MCP server
 2. Create GitHub issues for bugs and feature requests
 3. Check `toorpia://help` resource for usage guidance
-
----
-
-**Version 2.0 introduces breaking changes.** The preprocessing workflow is now mandatory for all analysis operations. Update your integrations accordingly.
