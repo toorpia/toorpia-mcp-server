@@ -1,4 +1,4 @@
-# Toorpia MCP Server v2.0
+# Toorpia MCP Server
 
 TypeScript MCP Server for toorpia - Provides secure access to geospatial analysis with preprocessing workflow and JWT authentication.
 
