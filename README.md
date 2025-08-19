@@ -361,13 +361,22 @@ Each audit entry contains:
 
 ### Feedback Collection
 
-User feedback stored in:
+User feedback stored by default in:
 
 ```
 ./feedback/
 ```
 
-Each feedback file contains user experience data for system improvement.
+For production deployments, configure a persistent storage directory using the `FEEDBACK_DIR` environment variable:
+
+```env
+# Production examples:
+FEEDBACK_DIR=/var/toorpia-mcp/feedback
+FEEDBACK_DIR=C:\ProgramData\toorpia-mcp\feedback
+FEEDBACK_DIR=/opt/toorpia-mcp/feedback
+```
+
+This ensures feedback data persists across application updates and container restarts. Each feedback file contains user experience data for system improvement.
 
 ## Error Codes
 

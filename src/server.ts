@@ -47,7 +47,7 @@ const logger = createLogger('ToorpiaMCPServer');
 const backendClient = new ToorpiaBackendClient();
 
 // Simple file-based feedback storage
-const FEEDBACK_DIR = './feedback';
+const FEEDBACK_DIR = process.env.FEEDBACK_DIR || './feedback';
 if (!existsSync(FEEDBACK_DIR)) {
   mkdirSync(FEEDBACK_DIR, { recursive: true });
 }
