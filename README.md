@@ -4,7 +4,8 @@ TypeScript MCP Server for toorPIA - Provides secure access to high-dimensional m
 
 ## Overview
 
-This MCP server provides AI assistants with secure, workflow-driven access to toorPIA's high-dimensional process analysis capabilities. Version 2.0 introduces a mandatory preprocessing workflow, JWT authentication, and comprehensive audit logging.
+This MCP server provides AI assistants with secure, workflow-oriented access to toorPIA's high-dimensional process analysis capabilities.  
+It enforces a mandatory preprocessing workflow, supports JWT-based authentication, and maintains comprehensive audit logging.
 
 ## Key Features
 
@@ -484,7 +485,3 @@ For feedback and support:
 1. Use the `toorpia_collect_feedback` tool within the MCP server
 2. Create GitHub issues for bugs and feature requests
 3. Check `toorpia://help` resource for usage guidance
-
----
-
-**Version 2.0 introduces breaking changes.** The preprocessing workflow is now mandatory for all analysis operations. Update your integrations accordingly.
