@@ -1,7 +1,7 @@
 {
   "name": "toorpia-mcp-server",
   "version": "1.0.0",
-  "description": "TypeScript MCP Server for toorpia - Provides secure access to geospatial analysis with preprocessing workflow",
+  "description": "TypeScript MCP Server for toorpia - Provides secure access to high-dimensional manufacturing/process analysis with preprocessing workflow",
   "main": "dist/server.js",
   "type": "commonjs",
   "scripts": {
@@ -15,7 +15,8 @@
     "mcp",
     "model-context-protocol",
     "toorpia",
-    "geospatial-analysis",
+    "high-dimensional-analysis",
+    "manufacturing-process-analysis",
     "data-analysis",
     "clustering",
     "anomaly-detection",

@@ -71,6 +71,9 @@ export async function verifyJWT(token: string): Promise<AuthContext> {
     
     const decoded = jwt.verify(token, publicKey, {
       algorithms: ['RS256', 'HS256'],
+      audience: 'toorpia-mcp',           // Verify audience
+      clockTolerance: 120,               // ±2 minutes clock skew tolerance
+      maxAge: '15m',                     // Maximum token lifetime: 15 minutes
       ignoreExpiration: false
     }) as JWTPayload;
 

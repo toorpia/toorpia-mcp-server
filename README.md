@@ -1,10 +1,10 @@
 # Toorpia MCP Server
 
-TypeScript MCP Server for toorpia - Provides secure access to geospatial analysis with preprocessing workflow and JWT authentication.
+TypeScript MCP Server for toorpia - Provides secure access to high-dimensional manufacturing/process analysis with preprocessing workflow and JWT authentication.
 
 ## Overview
 
-This MCP server provides AI assistants with secure, workflow-driven access to toorpia's geospatial analysis capabilities. Version 2.0 introduces a mandatory preprocessing workflow, JWT authentication, and comprehensive audit logging.
+This MCP server provides AI assistants with secure, workflow-driven access to toorpia's high-dimensional process analysis capabilities. Version 2.0 introduces a mandatory preprocessing workflow, JWT authentication, and comprehensive audit logging.
 
 ## Key Features
 
@@ -67,6 +67,9 @@ VERBOSE_LOGGING=false
 ENABLE_FILE_LOGGING=false
 ```
 
+> **Safety**: `SKIP_AUTH=true` is **for local development only**.  
+> In CI/CD and production images, ensure `SKIP_AUTH` is **unset**.
+
 ## Usage
 
 ### Development Mode
@@ -85,10 +88,31 @@ npm start
 npm run check
 ```
 
+### Run Modes
+- **stdio** (local development; default): MCP clients spawn this process.
+- **WSS** (remote): Expose `wss://` endpoint via reverse proxy (Nginx/ALB).  
+  Set `MCP_TRANSPORT=wss`, `PORT=3001`.  
+  Clients connect with `Authorization: Bearer <JWT>`.
+
 ### MCP Client Configuration
 
-Add to your MCP client configuration:
+**Claude Desktop:**
+```json
+{
+  "mcpServers": {
+    "toorpia": {
+      "command": "node",
+      "args": ["path/to/toorpia-mcp-server/dist/server.js"],
+      "env": {
+        "TOORPIA_API_URL": "http://localhost:3000",
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
+```
 
+**VS Code Cline settings.json:**
 ```json
 {
   "mcpServers": {
@@ -176,11 +200,39 @@ Run analysis on preprocessed data (requires READY session).
 
 **Requires scope:** `mcp:analyze`
 
+**Example:**
+```javascript
+// Example: toorpia_run_analysis (READY passed)
+{
+  "session_id": "sess_20250819_abc123",
+  "analysis_type": "anomaly_detection",
+  "parameters": { "z_thresh": 3.0 }
+}
+// → Response
+{
+  "analysis_id": "an_7f9c2",
+  "started_at": "2025-08-19T01:02:03Z",
+  "status": "running"
+}
+```
+
 ### 5. toorpia_get_status
 Check analysis progress and get results.
 
 **Parameters:**
 - `analysis_id` (string): ID from run_analysis response
+
+**Example Response:**
+```javascript
+{
+  "analysis_id": "an_7f9c2",
+  "status": "running",
+  "progress": 0.65,
+  "eta": "2025-08-19T01:05:30Z",
+  "error_code": null,
+  "results": null
+}
+```
 
 ### 6. toorpia_collect_feedback
 Submit feedback about your toorpia experience.
@@ -192,13 +244,32 @@ Submit feedback about your toorpia experience.
 - `context` (object, optional): Additional context
 - `rating` (number, optional): Rating 1-5
 
+## Schemas (excerpt)
+
+### confirm_preprocessed.input
+- `dataset_id: string`
+- `processed_uri: string (file|s3|gs://...)`
+- `manifest: { preset_id, profile_id, recipe_version, checksum(sha256|512), row_count, schema{ time_col, value_cols[] } }`
+
+### suggest_preprocess.input
+- `dataset_id: string`
+- `topk: number (1-10, default: 5, optional)`
+
+### run_analysis.input
+- `session_id: string` (**REQUIRED**)
+- `analysis_type: enum ["clustering", "anomaly_detection"]` (default: "clustering")
+- `parameters: object` (optional)
+
 ## Available Resources
 
 ### toorpia://status
 Current system status and backend connectivity information.
 
-### toorpia://help
+### toorpia://help (includes prompt hints)
 Complete usage guide for the preprocessing workflow.
+
+**Prompt example:** "Profile dataset `<dataset_id>` and suggest safe preprocessing (top-3).  
+If gaps>20% and 1m cadence, prefer `resample_1m_ffill5_iqr3_z_by_gtag`."
 
 ## Authentication & Authorization
 
@@ -214,6 +285,13 @@ Authorization: Bearer <jwt-token>
 - `mcp:profile`: Preprocessing tools (suggest/confirm)
 - `mcp:analyze`: Analysis execution
 - `*`: All permissions
+
+### JWT Requirements
+- **aud**: `toorpia-mcp`
+- **scope** (space-separated string): `mcp:profile`, `mcp:analyze`, …
+- **sub/tenant**: user and tenant identifiers
+- Token lifetime: **≤15 min**, clock skew tolerance **±2 min**  
+- Verification: JWKS (`AUTH_JWKS_URL`) or static public key (`AUTH_PUBLIC_KEY`)
 
 ### Development Mode
 
@@ -258,6 +336,11 @@ toorpia-mcp-server/
 - **Axios**: HTTP client for backend communication
 - **MCP SDK**: Model Context Protocol implementation
 
+### Future Extensions
+
+**Resources**: `file:///var/profiles/`, `file:///var/recipes/` を列挙予定  
+**Prompts**: `safe_preprocess`, `risk_report`, `root_cause_explain` を同梱予定
+
 ## Monitoring & Logging
 
 ### Audit Logging
@@ -268,12 +351,13 @@ Structured audit logs in JSON Lines format:
 ./var/logs/tool_calls.jsonl
 ```
 
-Each log entry includes:
+Each audit entry contains:
+- `audit_id` (propagated across tools)
+- `session_id`, `dataset_id`, `preset_id`
+- `input_hash` (privacy-preserving)
 - User and tenant identification
 - Tool execution details
-- Input parameter hashes (privacy-preserving)
 - Success/failure status
-- Session and preset information
 
 ### Feedback Collection
 
@@ -357,6 +441,8 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --only=production
 COPY dist/ ./dist/
+ENV NODE_ENV=production
+ENV ENABLE_FILE_LOGGING=true
 EXPOSE 3000
 CMD ["npm", "start"]
 ```

@@ -428,12 +428,11 @@ class ToorpiaMCPServer {
       return {
         tool: 'toorpia_run_analysis',
         success: result.success,
-        analysisId: result.analysisId,
+        analysis_id: result.analysisId,
         status: result.status,
-        estimatedTime: result.estimatedTime,
+        started_at: new Date().toISOString(),
         error: result.error,
         session_id: args.session_id,
-        timestamp: new Date().toISOString(),
         audit_id: auditId,
       };
     } catch (error: any) {
@@ -455,12 +454,23 @@ class ToorpiaMCPServer {
   ): Promise<any> {
     try {
       const result = await backendClient.getAnalysisStatus(args.analysis_id);
+      
+      // Calculate ETA if progress is available
+      let eta = null;
+      if (result.progress && result.progress > 0 && result.progress < 1) {
+        const estimatedTotalTime = 300; // 5 minutes default estimation
+        const remainingTime = (1 - result.progress) * estimatedTotalTime * 1000;
+        eta = new Date(Date.now() + remainingTime).toISOString();
+      }
+      
       return {
         tool: 'toorpia_get_status',
         success: result.success,
-        analysisId: result.analysisId,
+        analysis_id: result.analysisId || args.analysis_id,
         status: result.status,
         progress: result.progress,
+        eta: eta,
+        error_code: result.error ? 'ANALYSIS_ERROR' : null,
         results: result.results,
         error: result.error,
         timestamp: new Date().toISOString(),
@@ -470,6 +480,8 @@ class ToorpiaMCPServer {
       return {
         tool: 'toorpia_get_status',
         success: false,
+        analysis_id: args.analysis_id,
+        error_code: 'SYSTEM_ERROR',
         error: error.message,
         timestamp: new Date().toISOString(),
         audit_id: auditId,

@@ -8,9 +8,11 @@ export type GetStatusInputT = z.infer<typeof GetStatusInput>;
 
 export const GetStatusOutput = z.object({
   success: z.boolean(),
-  analysisId: z.string(),
+  analysis_id: z.string(),
   status: z.string().optional(),
   progress: z.number().optional(),
+  eta: z.string().optional(),
+  error_code: z.string().optional().nullable(),
   results: z.any().optional(),
   error: z.string().optional(),
   tool: z.string(),
