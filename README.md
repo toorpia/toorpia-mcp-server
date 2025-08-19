@@ -445,16 +445,107 @@ Sessions are stored in-memory with automatic cleanup:
 
 ### Docker Deployment
 
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist/ ./dist/
-ENV NODE_ENV=production
-ENV ENABLE_FILE_LOGGING=true
-EXPOSE 3000
-CMD ["npm", "start"]
+#### Using Pre-built Images
+
+Pull and run the official Docker image from GitHub Container Registry:
+
+```bash
+# Basic usage
+docker run -p 3000:3000 \
+  -e TOORPIA_API_URL=https://api.toorpia.com \
+  -e TOORPIA_API_KEY=your_secret_api_key \
+  ghcr.io/toorpia/toorpia-mcp-server:latest
+
+# With persistent feedback storage
+docker run -p 3000:3000 \
+  -v /host/toorpia-feedback:/app/feedback \
+  -e FEEDBACK_DIR=/app/feedback \
+  -e TOORPIA_API_URL=https://api.toorpia.com \
+  -e TOORPIA_API_KEY=your_secret_api_key \
+  ghcr.io/toorpia/toorpia-mcp-server:latest
+
+# Production deployment with JWT authentication
+docker run -p 3000:3000 \
+  -v /host/toorpia-feedback:/app/feedback \
+  -e NODE_ENV=production \
+  -e SKIP_AUTH=false \
+  -e AUTH_JWKS_URL=https://your-auth-provider.com/.well-known/jwks.json \
+  -e TOORPIA_API_URL=https://api.toorpia.com \
+  -e TOORPIA_API_KEY=your_secret_api_key \
+  -e FEEDBACK_DIR=/app/feedback \
+  -e LOG_LEVEL=info \
+  -e ENABLE_FILE_LOGGING=true \
+  ghcr.io/toorpia/toorpia-mcp-server:2.0.0
+```
+
+#### Docker Compose
+
+Create a `docker-compose.yml` file:
+
+```yaml
+version: '3.8'
+services:
+  toorpia-mcp:
+    image: ghcr.io/toorpia/toorpia-mcp-server:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SKIP_AUTH=false
+      - TOORPIA_API_URL=${TOORPIA_API_URL}
+      - TOORPIA_API_KEY=${TOORPIA_API_KEY}
+      - AUTH_JWKS_URL=${AUTH_JWKS_URL}
+      - FEEDBACK_DIR=/app/feedback
+      - LOG_LEVEL=info
+      - ENABLE_FILE_LOGGING=true
+    volumes:
+      - ./feedback:/app/feedback
+      - ./logs:/app/var/logs
+    restart: unless-stopped
+```
+
+Then run:
+```bash
+# Create .env file with your secrets
+echo "TOORPIA_API_KEY=your_secret_key" > .env
+echo "TOORPIA_API_URL=https://api.toorpia.com" >> .env
+echo "AUTH_JWKS_URL=https://your-auth-provider.com/.well-known/jwks.json" >> .env
+
+# Start the service
+docker-compose up -d
+```
+
+#### Security Best Practices
+
+**⚠️ Important Security Notes:**
+
+1. **Never embed secrets in images**: Always use environment variables or Docker secrets
+2. **Use specific image tags**: Avoid `latest` in production, use semantic versions like `2.0.0`
+3. **Persistent storage**: Mount volumes for feedback and logs to preserve data across container restarts
+4. **Network security**: Use Docker networks and reverse proxies for production deployments
+
+#### Available Image Tags
+
+- `latest`: Latest stable release
+- `2.0.0`, `2.1.0`, etc.: Specific semantic versions
+- `2`, `2.1`: Major and minor version tags
+
+#### Building Custom Images
+
+If you need to build a custom image:
+
+```bash
+# Clone the repository
+git clone https://github.com/toorpia/toorpia-mcp-server.git
+cd toorpia-mcp-server
+
+# Build the image
+docker build -f docker/Dockerfile -t my-toorpia-mcp .
+
+# Run your custom image
+docker run -p 3000:3000 \
+  -e TOORPIA_API_KEY=your_key \
+  my-toorpia-mcp
 ```
 
 ## Contributing
